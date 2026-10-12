@@ -1,103 +1,45 @@
-# 🎬 Anime Channel Finder V2
+# Anime Channel Finder — Render Web Service
 
-Telegram bot that finds an anime and creates temporary Telegram join-request invite links.
-
-## Features
-
-- Inline admin panel
-- SQLite database — no MongoDB
-- Multiple channels for one anime
-- Temporary join-request invite links
-- Configurable expiry from 1–1440 minutes
-- Optional anime posters
-- Render worker compatible
-- User simply sends the anime name
-
-## 1. Create the bot
-
-Use @BotFather and copy the bot token.
-
-## 2. Find your Telegram user ID
-
-Use a Telegram ID bot or another trusted method. Put the numeric ID in `ADMIN_IDS`.
-
-Example:
-
-ADMIN_IDS=123456789
-
-For multiple admins:
-
-ADMIN_IDS=123456789,987654321
-
-## 3. Add the bot to your target channels
-
-For every target channel:
-
-1. Add the bot as an administrator.
-2. Give it permission to manage invite links.
-3. The bot must be able to create invite links.
-
-Private channels are recommended for join-request links.
-
-## 4. Deploy on Render
-
-Create a new Background Worker from this repository.
-
-Environment variables:
-
-BOT_TOKEN=your_bot_token
-ADMIN_IDS=your_numeric_id
-
-The included render.yaml configures the worker and SQLite disk.
-
-## 5. Use the admin panel
-
-Send:
-
-/admin
-
-Then use:
-
-➕ Add Anime
-🗑️ Remove
-🖼️ Set Poster
-📋 Anime List
-⏳ Expiry
-
-### Add an anime
-
-Send:
-
-Black Clover | @YourChannel
-
-To attach another channel to the same anime, send another entry:
-
-Black Clover | @YourTamilChannel
-
-The user will then see separate buttons for the configured channels.
-
-### Set a poster
-
-Reply to a Telegram photo with:
-
-/setphoto Black Clover
-
-### Set expiry
-
-From the panel choose Expiry, or use:
-
-/setexpiry 10
+This version uses a Render **Web Service + Telegram webhook**.
 
 ## User flow
 
 User sends:
+`Black Clover`
 
-Black Clover
+Bot:
+1. Finds the anime.
+2. Finds its configured channel(s).
+3. Creates a Telegram join-request invite link.
+4. Sets the link to expire after the configured number of minutes.
+5. Sends the poster and an `🔗 Open Channel` button.
 
-The bot returns the saved poster (if configured), the anime name, and one temporary join-request button per channel.
+Anime searching/link generation is NOT admin-only.
 
-Each generated invite expires after the configured number of minutes.
+## Admin
+
+`/admin`
+`/add Black Clover | @YourChannel`
+`/remove Black Clover`
+`/setexpiry 10`
+`/setphoto Black Clover` (reply to a photo)
+`/list`
+
+## Render variables
+
+BOT_TOKEN = Telegram bot token
+ADMIN_IDS = comma-separated Telegram user IDs
+WEBHOOK_URL = your Render public URL, e.g. https://anime-channel-finder.onrender.com
+WEBHOOK_SECRET = any random secret string
+DEFAULT_EXPIRY_MINUTES = 10
+DB_PATH = /var/data/anime.db
 
 ## Important
 
-Telegram controls the actual invite expiration. The bot creates a new temporary invite each time a user searches for an anime.
+The bot must be an administrator in every target channel and must have permission to manage invite links.
+
+The Render disk in render.yaml is used for SQLite persistence. If your Render plan does not support persistent disks, the anime list can disappear after a restart/redeploy.
+
+After deployment, opening `/` should show a JSON health response.
+
+Do not run this version as a Background Worker. It is specifically configured as a Web Service.

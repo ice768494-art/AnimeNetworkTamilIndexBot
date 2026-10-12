@@ -1,13 +1,17 @@
 services:
-  - type: worker
+  - type: web
     name: anime-channel-finder
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
+    startCommand: gunicorn --bind 0.0.0.0:$PORT main:app
     envVars:
       - key: BOT_TOKEN
         sync: false
       - key: ADMIN_IDS
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: WEBHOOK_SECRET
         sync: false
       - key: DEFAULT_EXPIRY_MINUTES
         value: "10"
