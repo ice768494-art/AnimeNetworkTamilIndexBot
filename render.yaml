@@ -1,0 +1,19 @@
+services:
+  - type: worker
+    name: anime-channel-finder
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: DEFAULT_EXPIRY_MINUTES
+        value: "10"
+      - key: DB_PATH
+        value: "/var/data/anime.db"
+    disk:
+      name: anime-data
+      mountPath: /var/data
+      sizeGB: 1
