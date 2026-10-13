@@ -258,11 +258,14 @@ async def add_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     except TelegramError as e:
-        logger.warning("Could not access channel: %s", e)
+        logger.exception("Could not access channel %r", channel)
         await update.effective_message.reply_text(
-            "❌ I couldn't access that channel.\n\n"
-            "Add this bot as an administrator in the channel and "
-            "allow it to manage invite links."
+            "❌ Telegram could not access this channel.\n\n"
+            f"Channel entered: <code>{channel}</code>\n"
+            f"Telegram error: <code>{str(e)[:700]}</code>\n\n"
+            "Use the public @username (not a t.me invite URL), and confirm "
+            "this bot is an administrator in that exact channel.",
+            parse_mode="HTML"
         )
 
 
@@ -517,10 +520,14 @@ async def admin_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         except TelegramError as e:
-            logger.warning("Add channel failed: %s", e)
+            logger.exception("Add channel failed for %r", channel)
             await update.effective_message.reply_text(
-                "❌ Channel access failed.\n"
-                "Add the bot as an admin with invite-link permission."
+                "❌ Telegram could not access this channel.\n\n"
+                f"Channel entered: <code>{channel}</code>\n"
+                f"Telegram error: <code>{str(e)[:700]}</code>\n\n"
+                "Use the public @username (not a t.me invite URL), and confirm "
+                "this bot is an administrator in that exact channel.",
+                parse_mode="HTML"
             )
 
     elif state == "remove":
