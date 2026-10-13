@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import logging
+import threading
 from datetime import datetime, timedelta, timezone
 
 from flask import Flask, request, jsonify
@@ -31,28 +32,9 @@ logger = logging.getLogger("anime-channel-finder")
 
 db = sqlite3.connect(DB_PATH, check_same_thread=False)
 db.execute("PRAGMA foreign_keys=ON")
-db.execute("""
-CREATE TABLE IF NOT EXISTS anime (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
-    poster_file_id TEXT
-)
-""")
-db.execute("""
-CREATE TABLE IF NOT EXISTS channels (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    anime_id INTEGER NOT NULL,
-    chat_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    FOREIGN KEY(anime_id) REFERENCES anime(id) ON DELETE CASCADE
-)
-""")
-db.execute("""
-CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-)
-""")
+db.execute(""" CREATE TABLE IF NOT EXISTS anime ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, poster_file_id TEXT ) """)
+db.execute(""" CREATE TABLE IF NOT EXISTS channels ( id INTEGER PRIMARY KEY AUTOINCREMENT, anime_id INTEGER NOT NULL, chat_id TEXT NOT NULL, title TEXT NOT NULL, FOREIGN KEY(anime_id) REFERENCES anime(id) ON DELETE CASCADE ) """)
+db.execute(""" CREATE TABLE IF NOT EXISTS settings ( key TEXT PRIMARY KEY, value TEXT NOT NULL ) """)
 db.execute(
     "INSERT OR IGNORE INTO settings(key,value) VALUES('expiry_minutes',?)",
     (str(DEFAULT_EXPIRY),)
@@ -208,7 +190,7 @@ async def send_anime_list(chat_id, context):
         chs = channels_for(row[0])
         lines.append(f"🎬 <b>{row[1]}</b> — {len(chs)} channel(s)")
         for ch in chs:
-            lines.append(f"   • {ch[2]}")
+            lines.append(f" • {ch[2]}")
 
     await context.bot.send_message(
         chat_id, "\n".join(lines), parse_mode="HTML"
@@ -569,7 +551,7 @@ def health():
 
 
 @app.post("/webhook")
-async def webhook():
+def webhook():
     if WEBHOOK_SECRET:
         supplied = request.headers.get(
             "X-Telegram-Bot-Api-Secret-Token", ""
@@ -578,13 +560,22 @@ async def webhook():
             return jsonify({"ok": False}), 403
 
     data = request.get_json(silent=True)
-
     if not data:
         return jsonify({"ok": True})
 
     update = Update.de_json(data, telegram_app.bot)
 
-    await telegram_app.process_update(update)
+    # Keep Telegram Bot API work on the same long-lived event loop.
+    # Flask's per-request async loop would otherwise close and cause:
+    # RuntimeError("Event loop is closed").
+    future = asyncio.run_coroutine_threadsafe(
+        telegram_app.process_update(update), bot_loop
+    )
+    try:
+        future.result(timeout=30)
+    except Exception:
+        logger.exception("Failed to process Telegram webhook update")
+        return jsonify({"ok": False}), 500
 
     return jsonify({"ok": True})
 
@@ -627,8 +618,25 @@ async def setup():
     logger.info("Webhook set: %s", webhook_url)
 
 
+# Run python-telegram-bot on one persistent event loop. Do not use
+# asyncio.run(setup()) here: it closes the loop when setup finishes,
+# breaking Bot API calls made later by webhook handlers.
 import asyncio
-asyncio.run(setup())
+
+bot_loop = asyncio.new_event_loop()
+
+def _run_bot_loop():
+    asyncio.set_event_loop(bot_loop)
+    bot_loop.run_forever()
+
+bot_loop_thread = threading.Thread(
+    target=_run_bot_loop,
+    name="telegram-bot-loop",
+    daemon=True,
+)
+bot_loop_thread.start()
+
+asyncio.run_coroutine_threadsafe(setup(), bot_loop).result(timeout=60)
 
 
 if __name__ == "__main__":
