@@ -140,11 +140,15 @@ def admin_keyboard():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        message = (
-    "🎬 <b>Anime Channel Finder</b>\n\n"
-    "Black Clover ✅\n"
-    "Black Clover Tamil ❌"
-)
+        "🎬 <b>Anime Channel Finder</b>\n\n"
+        "Black Clover ✅\n"
+        "Black Clover Tamil ❌"
+    )
+
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML"
+    )
 
 await update.message.reply_text(
     message,
