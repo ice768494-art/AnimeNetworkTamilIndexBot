@@ -149,7 +149,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text,
         parse_mode="HTML"
     )
-
 await update.message.reply_text(
     message,
     parse_mode="HTML"
