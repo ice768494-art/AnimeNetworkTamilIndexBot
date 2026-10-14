@@ -140,9 +140,16 @@ def admin_keyboard():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        "🎬 <b>Anime Channel Finder</b>\n\n"
-        "Send me an anime name to get its channel link.\n\n"
-        "Example: <code>Black Clover</code>"
+        message = (
+    "🎬 <b>Anime Channel Finder</b>\n\n"
+    "Black Clover ✅\n"
+    "Black Clover Tamil ❌"
+)
+
+await update.message.reply_text(
+    message,
+    parse_mode="HTML"
+)
     )
     if is_admin(update.effective_user.id):
         text += "\n\n⚙️ Admin: use /admin"
@@ -324,7 +331,8 @@ async def send_anime_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not row:
         await update.effective_message.reply_text(
             "❌ Anime not found.\n"
-            "Try another name."
+            "Try another name.\n"
+            "Report @admin."
         )
         return
 
@@ -374,7 +382,7 @@ async def send_anime_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caption = (
         f"🎬 <b>{row[1]}</b>\n\n"
         f"⏳ Link expires in <b>{expiry} minutes</b>\n"
-        f"👇 Choose a channel:"
+        f"👇 Join Channel :"
     )
 
     markup = InlineKeyboardMarkup(buttons)
