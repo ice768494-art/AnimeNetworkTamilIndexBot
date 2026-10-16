@@ -313,7 +313,7 @@ async def send_anime_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     row = get_anime(name)
     if not row:
         await update.effective_message.reply_text(
-            "❌ Anime not found or not available yet.\n\n" + availability_text(),
+            "❌ Anime not found or not available yet Try Index.\n\n" + availability_text(),
             parse_mode="HTML"
         )
         return
