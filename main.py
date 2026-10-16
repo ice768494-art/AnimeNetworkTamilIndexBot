@@ -153,7 +153,7 @@ await update.message.reply_text(
     message,
     parse_mode="HTML"
 )
-    )
+    
     if is_admin(update.effective_user.id):
         text += "\n\n⚙️ Admin: use /admin"
     await update.effective_message.reply_text(text, parse_mode="HTML")
